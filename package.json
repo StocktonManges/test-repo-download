@@ -1,0 +1,22 @@
+{
+  "name": "test-repo-download",
+  "version": "1.0.0",
+  "description": "This app is for periodically downloading a zipball/tarball of a repo.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "node-cron": "^4.1.1",
+    "octokit": "^5.0.3",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "tsx": "^4.20.3"
+  },
+  "type": "module"
+}

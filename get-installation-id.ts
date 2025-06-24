@@ -1,0 +1,91 @@
+import { createAppAuth } from "@octokit/auth-app";
+import { App } from 'octokit';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Check for required environment variables
+const APP_ID = process.env.APP_ID;
+const PRIVATE_KEY_PATH = process.env.PRIVATE_KEY_PATH;
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const USERNAME = 'StocktonManges';
+
+if (!APP_ID) {
+    console.error('❌ APP_ID environment variable is not set');
+    console.error('Please set it in your .env file or export it');
+    process.exit(1);
+}
+
+if (!PRIVATE_KEY_PATH) {
+    console.error('❌ PRIVATE_KEY_PATH environment variable is not set');
+    console.error('Please set it in your .env file or export it');
+    process.exit(1);
+}
+
+// Check if the private key file exists
+if (!fs.existsSync(PRIVATE_KEY_PATH)) {
+    console.error(`❌ Private key file not found at: ${PRIVATE_KEY_PATH}`);
+    console.error('Please check the path and make sure the file exists');
+    process.exit(1);
+}
+
+const PRIVATE_KEY = fs.readFileSync(PRIVATE_KEY_PATH, 'utf8');
+const app = new App({ appId: APP_ID, privateKey: PRIVATE_KEY });
+
+export async function getInstallationId() {
+    try {
+        // Get the app's JWT token
+        const auth = createAppAuth({
+            appId: Number(APP_ID),
+            privateKey: PRIVATE_KEY,
+            clientId: CLIENT_ID,
+            clientSecret: CLIENT_SECRET,
+        });
+        const appAuthentication = await auth({ type: "app" });
+        const jwt = appAuthentication.token;
+
+        // Create an octokit instance with the JWT
+        const octokit = app.octokit;
+
+        // Get the installation for the specific user
+        const response = await octokit.request('GET /users/{username}/installation', {
+            username: USERNAME,
+            headers: {
+                authorization: `Bearer ${jwt}`,
+                accept: 'application/vnd.github+json'
+            }
+        });
+
+        const installationId = response.data.id;
+        console.log(`✅ Installation ID for ${USERNAME}: ${installationId}`);
+        console.log(`📋 Account: ${response.data.account?.name ?? 'Undefined'}`);
+        console.log(` App ID: ${response.data.app_id}`);
+        console.log(`📅 Created: ${response.data.created_at}`);
+        console.log(`🔄 Updated: ${response.data.updated_at}`);
+
+        return installationId;
+
+    } catch (error: any) {
+        if (error.status === 404) {
+            console.error(`❌ No installation found for user: ${USERNAME}`);
+            console.error('Make sure the GitHub App is installed for this user.');
+        } else {
+            console.error('❌ Error getting installation ID:', error.message);
+        }
+        throw error;
+    }
+}
+
+// Run the function
+getInstallationId()
+    .then(() => {
+        console.log('🎉 Script completed successfully');
+        process.exit(0);
+    })
+    .catch((error) => {
+        console.error('💥 Script failed:', error);
+        process.exit(1);
+    });

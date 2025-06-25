@@ -9,9 +9,9 @@ dotenv.config();
 // Check for required environment variables
 const APP_ID = process.env.APP_ID;
 const PRIVATE_KEY_PATH = process.env.PRIVATE_KEY_PATH;
+const OWNER = process.env.OWNER;
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const USERNAME = 'StocktonManges';
 
 if (!APP_ID) {
     console.error('❌ APP_ID environment variable is not set');
@@ -37,6 +37,12 @@ const app = new App({ appId: APP_ID, privateKey: PRIVATE_KEY });
 
 export async function getInstallationId() {
     try {
+        if (!OWNER) {
+            console.error('❌ OWNER environment variable is not set');
+            console.error('Please set it in your .env file or export it');
+            process.exit(1);
+        }
+
         // Get the app's JWT token
         const auth = createAppAuth({
             appId: Number(APP_ID),
@@ -52,7 +58,7 @@ export async function getInstallationId() {
 
         // Get the installation for the specific user
         const response = await octokit.request('GET /users/{username}/installation', {
-            username: USERNAME,
+            username: OWNER,
             headers: {
                 authorization: `Bearer ${jwt}`,
                 accept: 'application/vnd.github+json'
@@ -60,17 +66,15 @@ export async function getInstallationId() {
         });
 
         const installationId = response.data.id;
-        console.log(`✅ Installation ID for ${USERNAME}: ${installationId}`);
+        console.log(`✅ Installation ID for ${OWNER}: ${installationId}`);
         console.log(`📋 Account: ${response.data.account?.name ?? 'Undefined'}`);
-        console.log(` App ID: ${response.data.app_id}`);
-        console.log(`📅 Created: ${response.data.created_at}`);
-        console.log(`🔄 Updated: ${response.data.updated_at}`);
+        console.log(`   App ID: ${response.data.app_id}`);
 
         return installationId;
 
     } catch (error: any) {
         if (error.status === 404) {
-            console.error(`❌ No installation found for user: ${USERNAME}`);
+            console.error(`❌ No installation found for user: ${OWNER}`);
             console.error('Make sure the GitHub App is installed for this user.');
         } else {
             console.error('❌ Error getting installation ID:', error.message);

@@ -66,9 +66,10 @@ export async function getInstallationId() {
         });
 
         const installationId = response.data.id;
-        console.log(`✅ Installation ID for ${OWNER}: ${installationId}`);
-        console.log(`📋 Account: ${response.data.account?.name ?? 'Undefined'}`);
-        console.log(`   App ID: ${response.data.app_id}`);
+        // console.log(`Installation ID for ${OWNER}: ${installationId}`);
+        // console.log(`✅ Installation ID for ${OWNER}: ${installationId}`);
+        // console.log(`📋 Account: ${response.data.account?.name ?? 'Undefined'}`);
+        // console.log(`   App ID: ${response.data.app_id}`);
 
         return installationId;
 
@@ -82,14 +83,3 @@ export async function getInstallationId() {
         throw error;
     }
 }
-
-// Run the function
-getInstallationId()
-    .then(() => {
-        console.log('🎉 Script completed successfully');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('💥 Script failed:', error);
-        process.exit(1);
-    });

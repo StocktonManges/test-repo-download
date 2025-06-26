@@ -1,0 +1,21 @@
+name: Zip and Upload Repository
+
+on:
+  workflow_dispatch
+
+jobs:
+  zip-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Zip repository
+        run: |
+          zip -r repo.zip . -x '*.git*'
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-zip
+          path: repo.zip 

@@ -11,20 +11,21 @@ on:
       ignored_content:
         description: 'The files to ignore'
         required: false
+        default: ''
         type: string
-      server_url:
-        description: 'Server URL to upload to'
-        required: true
-        type: string
-      server_path:
-        description: 'Path on server to upload to'
-        required: true
-        default: '/tmp'
-        type: string
-      server_token:
-        description: 'Server token'
-        required: true
-        type: string
+    #   server_url:
+    #     description: 'Server URL to upload to'
+    #     required: true
+    #     type: string
+    #   server_path:
+    #     description: 'Path on server to upload to'
+    #     required: true
+    #     default: '/tmp'
+    #     type: string
+    #   server_token:
+    #     description: 'Server token'
+    #     required: true
+    #     type: string
 
 jobs:
   zip-and-upload:
@@ -48,3 +49,14 @@ jobs:
           retention-days: 1
           overwrite: true
           include-hidden-files: true
+
+    #   - name: Upload to server
+    #     if: inputs.server_url != ''
+    #     run: |
+    #       # Using curl to upload to server
+    #       curl -X POST \
+    #         -F "file=@${{ inputs.zip_name }}.zip" \
+    #         -F "path=${{ inputs.server_path }}" \
+    #         "${{ inputs.server_url }}/upload"
+    #     env:
+    #       SERVER_TOKEN: ${{ inputs.SERVER_TOKEN }}

@@ -24,7 +24,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.zip_name }}
-          path: repo.zip
+          path: ${{ inputs.zip_name }}.zip
           if-no-files-found: error
           compression-level: 4
           retention-days: 1

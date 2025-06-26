@@ -55,7 +55,7 @@ async function triggerWorkflow() {
         workflow_id: 'zip-and-upload.yml',
         ref: 'main',
         inputs: {
-            zip_name: REPO + '-' + OWNER + '-' + 'repo.zip'
+            zip_name: 'repo=' + REPO + '-' + 'owner=' + OWNER
         },
         headers: {
             accept: 'application/vnd.github+json'

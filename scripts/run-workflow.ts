@@ -59,10 +59,11 @@ async function triggerWorkflow() {
     };
 
     const ignored_content: string[] = []; // It's recommended to use relative paths
+    const trimmed_ignored_content = ignored_content.filter(c => c.trim() !== '');
 
-    // If there are ignored content, add it to the inputs
-    if (ignored_content.length > 0) {
-        inputs.ignored_content = ignored_content.join(',');
+    // If there is ignored content, add it to the inputs
+    if (trimmed_ignored_content.length > 0) {
+        inputs.ignored_content = trimmed_ignored_content.join(',');
     }
 
     return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
@@ -75,6 +76,13 @@ async function triggerWorkflow() {
             accept: 'application/vnd.github+json'
         }
     })
+
+    /** AFTER RECEIVING THE workflow_run WEBHOOK
+     * Make sure `action` is `completed` and `name` is `Zip and Upload Repository`
+     * Get all runs for a workflow
+     * Get the latest run
+     * Download the logs if the latest run `conclusion !== 'success'`
+     */
 }
 
 triggerWorkflow()

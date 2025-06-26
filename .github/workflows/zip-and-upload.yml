@@ -11,7 +11,6 @@ on:
       ignored_content:
         description: 'The files to ignore'
         required: false
-        default: ''
         type: string
     #   server_url:
     #     description: 'Server URL to upload to'
@@ -36,7 +35,7 @@ jobs:
 
       - name: Zip repository
         run: |
-            if [ -n "${{ inputs.ignored_content }}" ]; then
+            if [ -n "${{ inputs.ignored_content }}" ] && [ "${{ inputs.ignored_content }}" != "" ]; then
               IFS=',' read -ra EXCLUDES <<< "${{ inputs.ignored_content }}"
               zip -r "${{ inputs.zip_name }}.zip" . -x "${EXCLUDES[@]}"
             else

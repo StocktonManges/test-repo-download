@@ -8,10 +8,22 @@ on:
         required: true
         default: 'repo.zip'
         type: string
-      ignored_files:
+      ignored_content:
         description: 'The files to ignore'
         required: false
-        default: '*.git*'
+        type: string
+      server_url:
+        description: 'Server URL to upload to'
+        required: true
+        type: string
+      server_path:
+        description: 'Path on server to upload to'
+        required: true
+        default: '/tmp'
+        type: string
+      server_token:
+        description: 'Server token'
+        required: true
         type: string
 
 jobs:
@@ -23,7 +35,7 @@ jobs:
 
       - name: Zip repository
         run: |
-            IFS=',' read -ra EXCLUDES <<< "${{ inputs.ignored_files }}"
+            IFS=',' read -ra EXCLUDES <<< "${{ inputs.ignored_content }}"
             zip -r "${{ inputs.zip_name }}.zip" . -x "${EXCLUDES[@]}"
 
       - name: Upload zip artifact

@@ -49,17 +49,27 @@ async function triggerWorkflow() {
 
     console.log('Triggering workflow...');
 
-    const ignored_files = ['*.git*', '*/your dad/*', 'your_mom.txt'];
+    // Create the inputs for the workflow
+    const inputs: Record<string, string> = {
+        zip_name: 'repo=' + REPO + '&' + 'owner=' + OWNER,
+        server_url: 'SERVER_URL',
+        server_path: 'SERVER_PATH',
+        server_token: 'SERVER_TOKEN',
+    };
+
+    const ignored_content: string[] = []; // It's recommended to use relative paths
+
+    // If there are ignored content, add it to the inputs
+    if (ignored_content.length > 0) {
+        inputs.ignored_content = ignored_content.join(',');
+    }
 
     return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
         owner: OWNER,
         repo: REPO,
         workflow_id: 'zip-and-upload.yml',
         ref: 'main',
-        inputs: {
-            zip_name: 'repo=' + REPO + '&' + 'owner=' + OWNER,
-            ignored_files: ignored_files.join(','),
-        },
+        inputs,
         headers: {
             accept: 'application/vnd.github+json'
         }

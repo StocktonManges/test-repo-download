@@ -8,6 +8,11 @@ on:
         required: true
         default: 'repo.zip'
         type: string
+      ignored_files:
+        description: 'The files to ignore'
+        required: false
+        default: '*.git*'
+        type: string
 
 jobs:
   zip-and-upload:
@@ -18,7 +23,7 @@ jobs:
 
       - name: Zip repository
         run: |
-          zip -r repo.zip .
+          zip -r ${{ inputs.zip_name }}.zip . -x ${{ inputs.ignored_files }}
 
       - name: Upload zip artifact
         uses: actions/upload-artifact@v4

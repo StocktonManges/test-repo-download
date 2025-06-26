@@ -49,16 +49,21 @@ async function triggerWorkflow() {
 
     console.log('Triggering workflow...');
 
-    const ignored_content: string[] = []; // It's recommended to use relative paths
 
     // Create the inputs for the workflow
     const inputs: Record<string, string> = {
         zip_name: 'repo=' + REPO + '&' + 'owner=' + OWNER,
-        ignored_content: ignored_content.length > 0 ? ignored_content.join(',') : '',
         // server_url: 'SERVER_URL',
         // server_path: 'SERVER_PATH',
         // server_token: 'SERVER_TOKEN',
     };
+
+    const ignored_content: string[] = []; // It's recommended to use relative paths
+
+    // If there are ignored content, add it to the inputs
+    if (ignored_content.length > 0) {
+        inputs.ignored_content = ignored_content.join(',');
+    }
 
     return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
         owner: OWNER,

@@ -23,7 +23,8 @@ jobs:
 
       - name: Zip repository
         run: |
-          zip -r ${{ inputs.zip_name }}.zip . -x ${{ inputs.ignored_files }}
+            IFS=',' read -ra EXCLUDES <<< "${{ inputs.ignored_files }}"
+            zip -r "${{ inputs.zip_name }}.zip" . -x "${EXCLUDES[@]}"
 
       - name: Upload zip artifact
         uses: actions/upload-artifact@v4

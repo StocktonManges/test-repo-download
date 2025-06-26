@@ -49,7 +49,7 @@ async function triggerWorkflow() {
 
     console.log('Triggering workflow...');
 
-    const ignored_files = ['*.git*', '*/scripts'];
+    const ignored_files = ['*.git*', '*/scripts*'];
 
     return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
         owner: OWNER,
@@ -58,7 +58,7 @@ async function triggerWorkflow() {
         ref: 'main',
         inputs: {
             zip_name: 'repo=' + REPO + '&' + 'owner=' + OWNER,
-            ignored_files: ignored_files.join(' '),
+            ignored_files: ignored_files.join(','),
         },
         headers: {
             accept: 'application/vnd.github+json'

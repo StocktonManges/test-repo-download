@@ -49,7 +49,7 @@ async function triggerWorkflow() {
 
     console.log('Triggering workflow...');
 
-    const ignored_files = ['*.git*', 'your mom/*'];
+    const ignored_files = ['*.git*', '*/your dad/*', 'your_mom.txt'];
 
     return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
         owner: OWNER,

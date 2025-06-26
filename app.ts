@@ -3,6 +3,8 @@ import fs from 'fs'
 import http from 'http'
 import { Octokit, App } from 'octokit'
 import { createNodeMiddleware } from '@octokit/webhooks'
+import { getAuthenticatedOctokitInstance } from './scripts/get-installation-id.js'
+import { generateRepoZipName } from './utils.js'
 
 // Load environment variables from .env file
 dotenv.config();
@@ -60,9 +62,59 @@ const { data } = await app.octokit.request('/app');
 // Read more about custom logging: https://github.com/octokit/core.js#logging
 app.octokit.log.debug(`Authenticated as '${data.name}'`);
 
-// Subscribe to the "pull_request.opened" webhook event
-app.webhooks.on('workflow_run.completed', async ({ payload }) => {
-    console.log('Conclusion: ', payload.workflow_run.conclusion);
+// Subscribe to the "workflow_run" webhook event
+app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
+    const workflowName = payload.workflow?.name;
+
+    if (!workflowName) {
+        console.log('No workflow name found');
+        return;
+    } else if (workflowName === 'Zip and Upload Repository') {
+        if (payload.action === 'requested') {
+            console.log('Workflow run requested');
+            console.log('run id: ', payload.workflow_run.id);
+            console.log('workflow name: ', payload.workflow_run.name);
+            console.log('repo name: ', payload.repository.name);
+            console.log('requester name: ', payload.sender.login)
+            console.log('Processing...');
+        }
+        if (payload.action === 'completed') {
+            console.log(payload.workflow_run.conclusion);
+
+            if (payload.workflow_run.conclusion === 'success') {
+                // Download the zip file from the artifact
+                const { data: { artifacts } } = await octokit.request('GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts', {
+                    owner: payload.repository.owner.login,
+                    repo: payload.repository.name,
+                    run_id: payload.workflow_run.id,
+                    headers: {
+                        accept: 'application/vnd.github+json',
+                    }
+                });
+
+                const repoZip = artifacts.find(a => a.name.includes(generateRepoZipName(payload.repository.name, payload.repository.owner.login)));
+
+                if (!repoZip) {
+                    console.log('No repo zip found');
+                    return;
+                }
+
+                console.log('Download URL: ', repoZip.archive_download_url);
+                return;
+
+            } else {
+                console.log('Workflow run conclusion: ', payload.workflow_run.conclusion);
+                console.log('Workflow run was not successful. Downloading logs...');
+
+                // TODO: Download the logs file
+
+                return;
+            }
+        }
+    } else {
+        console.log('Workflow name: ', workflowName);
+        return;
+    }
 });
 
 // Optional: Handle errors

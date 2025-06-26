@@ -1,6 +1,6 @@
-import { App } from 'octokit';
 import fs from 'fs';
 import { getAuthenticatedOctokitInstance } from './get-installation-id.js';
+import { generateRepoZipName } from '../utils.js';
 
 // Load env variables
 const APP_ID = process.env.APP_ID;
@@ -26,9 +26,6 @@ if (!fs.existsSync(PRIVATE_KEY_PATH)) {
     process.exit(1);
 }
 
-const PRIVATE_KEY = fs.readFileSync(PRIVATE_KEY_PATH, 'utf8');
-const app = new App({ appId: APP_ID, privateKey: PRIVATE_KEY });
-
 async function triggerWorkflow() {
     if (!OWNER) {
         console.log('❌ OWNER environment variable is not set');
@@ -49,10 +46,9 @@ async function triggerWorkflow() {
 
     console.log('Triggering workflow...');
 
-
     // Create the inputs for the workflow
     const inputs: Record<string, string> = {
-        zip_name: 'repo=' + REPO + '&' + 'owner=' + OWNER,
+        zip_name: generateRepoZipName(REPO, OWNER) + new Date().toISOString().split('T')[0],
         // server_url: 'SERVER_URL',
         // server_path: 'SERVER_PATH',
         // server_token: 'SERVER_TOKEN',
@@ -76,13 +72,6 @@ async function triggerWorkflow() {
             accept: 'application/vnd.github+json'
         }
     })
-
-    /** AFTER RECEIVING THE workflow_run WEBHOOK
-     * Make sure `action` is `completed` and `name` is `Zip and Upload Repository`
-     * Get all runs for a workflow
-     * Get the latest run
-     * Download the logs if the latest run `conclusion !== 'success'`
-     */
 }
 
 triggerWorkflow()

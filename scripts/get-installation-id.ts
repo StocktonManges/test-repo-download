@@ -56,8 +56,9 @@ export async function getAuthenticatedOctokitInstance() {
         // Create an octokit instance with the JWT
         const octokit = app.octokit;
 
-        // Get the installation for the specific user
+        // Get the installation for the specific user through the user's username
         const response = await octokit.request('GET /users/{username}/installation', {
+            // THIS WILL NEED TO BE DYNAMICALLY CHANGED TO THE USER'S GITHUB USERNAME
             username: OWNER,
             headers: {
                 authorization: `Bearer ${jwt}`,

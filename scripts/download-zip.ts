@@ -2,7 +2,7 @@ import { App } from 'octokit';
 import fs from 'fs';
 import https from 'https';
 import path from 'path';
-import { getInstallationId } from './get-installation-id.js';
+import { getAuthenticatedOctokitInstance } from './get-installation-id.js';
 
 // Load env variables
 const APP_ID = process.env.APP_ID;
@@ -44,11 +44,10 @@ async function downloadZipball() {
         process.exit(1);
     }
 
-    console.log('Getting installation ID...');
+    console.log('Getting authenticated octokit instance...');
 
     // Get the authenticated octokit instance for the app
-    const installation_id = await getInstallationId();
-    const octokit = await app.getInstallationOctokit(installation_id);
+    const octokit = await getAuthenticatedOctokitInstance();
 
     console.log('Getting zipball URL...');
 
@@ -56,7 +55,7 @@ async function downloadZipball() {
     const response = await octokit.request('GET /repos/{owner}/{repo}/zipball/{ref}', {
         owner: OWNER,
         repo: REPO,
-        ref: 'development',
+        ref: 'main',
         headers: {
             accept: 'application/vnd.github+json'
         }

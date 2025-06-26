@@ -35,7 +35,7 @@ if (!fs.existsSync(PRIVATE_KEY_PATH)) {
 const PRIVATE_KEY = fs.readFileSync(PRIVATE_KEY_PATH, 'utf8');
 const app = new App({ appId: APP_ID, privateKey: PRIVATE_KEY });
 
-export async function getInstallationId() {
+export async function getAuthenticatedOctokitInstance() {
     try {
         if (!OWNER) {
             console.error('❌ OWNER environment variable is not set');
@@ -65,14 +65,7 @@ export async function getInstallationId() {
             }
         });
 
-        const installationId = response.data.id;
-        // console.log(`Installation ID for ${OWNER}: ${installationId}`);
-        // console.log(`✅ Installation ID for ${OWNER}: ${installationId}`);
-        // console.log(`📋 Account: ${response.data.account?.name ?? 'Undefined'}`);
-        // console.log(`   App ID: ${response.data.app_id}`);
-
-        return installationId;
-
+        return await app.getInstallationOctokit(response.data.id);
     } catch (error: any) {
         if (error.status === 404) {
             console.error(`❌ No installation found for user: ${OWNER}`);

@@ -1,8 +1,6 @@
 import { App } from 'octokit';
 import fs from 'fs';
-import https from 'https';
-import path from 'path';
-import { getInstallationId } from './get-installation-id.js';
+import { getAuthenticatedOctokitInstance } from './get-installation-id.js';
 
 // Load env variables
 const APP_ID = process.env.APP_ID;
@@ -31,7 +29,7 @@ if (!fs.existsSync(PRIVATE_KEY_PATH)) {
 const PRIVATE_KEY = fs.readFileSync(PRIVATE_KEY_PATH, 'utf8');
 const app = new App({ appId: APP_ID, privateKey: PRIVATE_KEY });
 
-async function downloadZipball() {
+async function triggerWorkflow() {
     if (!OWNER) {
         console.log('❌ OWNER environment variable is not set');
         console.log('Please set it in your .env file or export it');
@@ -47,50 +45,25 @@ async function downloadZipball() {
     console.log('Getting installation ID...');
 
     // Get the authenticated octokit instance for the app
-    const installation_id = await getInstallationId();
-    const octokit = await app.getInstallationOctokit(installation_id);
+    const octokit = await getAuthenticatedOctokitInstance();
 
-    console.log('Getting zipball URL...');
+    console.log('Triggering workflow...');
 
-    // Get the zipball download URL
-    const response = await octokit.request('GET /repos/{owner}/{repo}/zipball/{ref}', {
+    return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
         owner: OWNER,
         repo: REPO,
-        ref: 'development',
+        workflow_id: 'zip-and-upload.yml',
+        ref: 'main',
+        inputs: {
+            zip_name: REPO + '-' + OWNER + '-' + 'repo.zip'
+        },
         headers: {
             accept: 'application/vnd.github+json'
         }
-    });
-
-    console.log('Zipball URL:', response.url);
-
-    // Get the token from octokit auth
-    const { token } = await (octokit.auth({ type: 'installation' }) as Promise<{ token: string }>);
-
-    const zipballUrl = response.url;
-    const destPath = path.resolve('/Users/stockton.manges/Downloads/', `${REPO}.zip`);
-    const file = fs.createWriteStream(destPath);
-
-    console.log(`Downloading zipball to ${destPath}`);
-
-    // Wrap the download in a Promise
-    await new Promise<void>((resolve, reject) => {
-        https.get(zipballUrl, { headers: { authorization: `token ${token}` } }, res => {
-            res.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                console.log(`Download complete: ${destPath}`);
-                resolve();
-            });
-        }).on('error', err => {
-            fs.unlink(destPath, () => { });
-            console.error(`❌ Error downloading zipball:`, err);
-            reject(err);
-        });
-    });
+    })
 }
 
-downloadZipball()
+triggerWorkflow()
     .then(() => {
         console.log('Script completed successfully');
         process.exit(0);

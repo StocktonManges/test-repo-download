@@ -1,3 +1,5 @@
+/** This is the main app that runs the GitHub webhook server. */
+
 import dotenv from 'dotenv'
 import fs from 'fs'
 import http from 'http'
@@ -13,6 +15,7 @@ dotenv.config();
 const APP_ID = process.env.APP_ID;
 const PRIVATE_KEY_PATH = process.env.PRIVATE_KEY_PATH;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION;
 const enterpriseHostname = process.env.ENTERPRISE_HOSTNAME;
 
 if (!APP_ID) {
@@ -40,6 +43,12 @@ if (!WEBHOOK_SECRET) {
     process.exit(1);
 }
 
+if (!GITHUB_API_VERSION) {
+    console.error('❌ GITHUB_API_VERSION environment variable is not set');
+    console.error('Please set it in your .env file or export it');
+    process.exit(1);
+}
+
 const PRIVATE_KEY = fs.readFileSync(PRIVATE_KEY_PATH, 'utf8');
 
 // Create an authenticated Octokit client authenticated as a GitHub App
@@ -56,6 +65,8 @@ const app = new App({
     })
 });
 
+// Subscribe to the "installation_repositories" webhook event. This is used to store data about the installation and 
+// the repositories that are added to the installation.
 app.webhooks.on('installation_repositories', async ({ payload }) => {
     const isAdding = payload.action === 'added';
     console.log(`Installation repositories event received: ${isAdding ? 'addition' : 'removal'}`);
@@ -111,6 +122,7 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
                     run_id: payload.workflow_run.id,
                     headers: {
                         accept: 'application/vnd.github+json',
+                        'X-GitHub-Api-Version': GITHUB_API_VERSION,
                     }
                 });
 
@@ -131,7 +143,7 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
                     archive_format: 'zip',
                     headers: {
                         accept: 'application/vnd.github+json',
-                        'X-GitHub-Api-Version': '2022-11-28',
+                        'X-GitHub-Api-Version': GITHUB_API_VERSION,
                     }
                 });
 
@@ -150,7 +162,7 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
                     attempt_number: runAttempt,
                     headers: {
                         accept: 'application/vnd.github+json',
-                        'X-GitHub-Api-Version': '2022-11-28',
+                        'X-GitHub-Api-Version': GITHUB_API_VERSION,
                     }
                 })
 

@@ -4,7 +4,7 @@
   "description": "This app is for periodically downloading a zipball/tarball of a repo.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "process": "tsx scripts/index.ts"
   },
   "author": "",
   "license": "ISC",

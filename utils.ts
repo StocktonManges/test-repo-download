@@ -32,5 +32,18 @@ export const downloadFile = async (downloadUrl: string, destPath: string) => {
 }
 
 // FOR DEVELOPMENT PURPOSES ONLY.
-export const OWNER = 'StocktonManges';
-export const REPO = 'test-repo-download';
+export const DUMMY_DATA = {
+    accounts: [
+        {
+            installationId: 72871235,
+            owner: 'StocktonManges',
+            repos: [
+                {
+                    name: 'test-repo-download',
+                    ref: 'main',
+                    ignoredContent: [],
+                }
+            ],
+        }
+    ]
+}

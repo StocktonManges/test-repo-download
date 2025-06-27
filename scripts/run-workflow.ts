@@ -1,40 +1,30 @@
-import fs from 'fs';
-import { getAuthenticatedOctokitInstance } from './authenticate-octokit-instance.js';
-import { generateRepoZipName, generateTimestampString, OWNER, REPO } from '../utils.js';
+import { Octokit } from 'octokit';
+import { generateRepoZipName, generateTimestampString } from '../utils.js';
+import dotenv from 'dotenv';
 
-// Load env variables
-const APP_ID = process.env.APP_ID;
-const PRIVATE_KEY_PATH = process.env.PRIVATE_KEY_PATH;
+dotenv.config();
 
-if (!APP_ID) {
-    console.error('❌ APP_ID environment variable is not set');
-    console.error('Please set it in your .env file or export it');
-    process.exit(1);
-}
+const WORKFLOW_NAME = process.env.WORKFLOW_NAME;
+const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION;
 
-if (!PRIVATE_KEY_PATH) {
-    console.error('❌ PRIVATE_KEY_PATH environment variable is not set');
-    console.error('Please set it in your .env file or export it');
-    process.exit(1);
-}
+export async function triggerWorkflow(octokit: Octokit, owner: string, repo: string, ref: string) {
+    if (!WORKFLOW_NAME) {
+        console.error('WORKFLOW_NAME environment variable is not set');
+        console.error('Please set it in your .env file or export it');
+        process.exit(1);
+    }
 
-// Check if the private key file exists
-if (!fs.existsSync(PRIVATE_KEY_PATH)) {
-    console.error('Please check the private key path and make sure the file exists');
-    process.exit(1);
-}
-
-async function triggerWorkflow() {
-    console.log('Getting authenticated octokit instance...');
-
-    // Get the authenticated octokit instance for the intstallation (GitHub account)
-    const octokit = await getAuthenticatedOctokitInstance();
+    if (!GITHUB_API_VERSION) {
+        console.error('GITHUB_API_VERSION environment variable is not set');
+        console.error('Please set it in your .env file or export it');
+        process.exit(1);
+    }
 
     console.log('Triggering workflow...');
 
     // Create the inputs for the workflow
     const inputs: Record<string, string> = {
-        zip_name: generateRepoZipName(REPO, OWNER) + '-' + generateTimestampString(),
+        zip_name: generateRepoZipName(repo, owner) + '-' + generateTimestampString(),
         // server_url: 'SERVER_URL',
         // server_path: 'SERVER_PATH',
         // server_token: 'SERVER_TOKEN',
@@ -49,24 +39,14 @@ async function triggerWorkflow() {
     }
 
     return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
-        owner: OWNER,
-        repo: REPO,
-        workflow_id: 'zip-and-upload.yml',
-        ref: 'main',
+        owner,
+        repo,
+        workflow_id: WORKFLOW_NAME,
+        ref,
         inputs,
         headers: {
             accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
+            'X-GitHub-Api-Version': GITHUB_API_VERSION,
         }
     })
 }
-
-triggerWorkflow()
-    .then(() => {
-        console.log('Script completed successfully');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Script failed:', error);
-        process.exit(1);
-    });

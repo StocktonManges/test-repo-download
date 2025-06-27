@@ -1,61 +1,34 @@
-import fs from 'fs';
-import { getAuthenticatedOctokitInstance } from './authenticate-octokit-instance.js';
-import { downloadFile, generateRepoZipName, OWNER, REPO } from '../utils.js';
+import { downloadFile, generateRepoZipName } from '../utils.js';
 import path from 'path';
+import { Octokit } from 'octokit';
+import dotenv from 'dotenv';
 
-// Load env variables
-const APP_ID = process.env.APP_ID;
-const PRIVATE_KEY_PATH = process.env.PRIVATE_KEY_PATH;
+dotenv.config();
 
-if (!APP_ID) {
-    console.error('❌ APP_ID environment variable is not set');
-    console.error('Please set it in your .env file or export it');
-    process.exit(1);
-}
+const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION;
 
-if (!PRIVATE_KEY_PATH) {
-    console.error('❌ PRIVATE_KEY_PATH environment variable is not set');
-    console.error('Please set it in your .env file or export it');
-    process.exit(1);
-}
-
-// Check if the private key file exists
-if (!fs.existsSync(PRIVATE_KEY_PATH)) {
-    console.error('Please check the private key path and make sure the file exists');
-    process.exit(1);
-}
-
-async function downloadZipball() {
-    console.log('Getting authenticated octokit instance...');
-
-    // Get the authenticated octokit instance for the installation (GitHub account)
-    const octokit = await getAuthenticatedOctokitInstance();
+export async function downloadZipball(octokit: Octokit, owner: string, repo: string, ref: string) {
+    if (!GITHUB_API_VERSION) {
+        console.error('❌ GITHUB_API_VERSION environment variable is not set');
+        console.error('Please set it in your .env file or export it');
+        process.exit(1);
+    }
 
     console.log('Getting zipball URL...');
 
     // Get the zipball download URL
     const response = await octokit.request('GET /repos/{owner}/{repo}/zipball/{ref}', {
-        owner: OWNER,
-        repo: REPO,
-        ref: 'main',
+        owner,
+        repo,
+        ref,
         headers: {
             accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
+            'X-GitHub-Api-Version': GITHUB_API_VERSION,
         }
     });
 
     const zipballUrl = response.url;
-    const destPath = path.resolve('/Users/stockton.manges/Downloads/', `${generateRepoZipName(REPO, OWNER)}.zip`);
+    const destPath = path.resolve('/Users/stockton.manges/Downloads/', `${generateRepoZipName(repo, owner)}.zip`);
 
     return await downloadFile(zipballUrl, destPath);
 }
-
-downloadZipball()
-    .then(() => {
-        console.log('Script completed successfully');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Script failed:', error);
-        process.exit(1);
-    });

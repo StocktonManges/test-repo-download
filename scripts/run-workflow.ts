@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { getAuthenticatedOctokitInstance } from './get-installation-id.js';
-import { generateRepoZipName } from '../utils.js';
+import { generateRepoZipName, generateTimestampString } from '../utils.js';
 
 // Load env variables
 const APP_ID = process.env.APP_ID;
@@ -48,7 +48,7 @@ async function triggerWorkflow() {
 
     // Create the inputs for the workflow
     const inputs: Record<string, string> = {
-        zip_name: generateRepoZipName(REPO, OWNER) + new Date().toISOString().split('T')[0],
+        zip_name: generateRepoZipName(REPO, OWNER) + '-' + generateTimestampString(),
         // server_url: 'SERVER_URL',
         // server_path: 'SERVER_PATH',
         // server_token: 'SERVER_TOKEN',
@@ -59,7 +59,7 @@ async function triggerWorkflow() {
 
     // If there is ignored content, add it to the inputs
     if (trimmed_ignored_content.length > 0) {
-        inputs.ignored_content = trimmed_ignored_content.join(',');
+        inputs.ignored_content = trimmed_ignored_content.join(' ');
     }
 
     return await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {

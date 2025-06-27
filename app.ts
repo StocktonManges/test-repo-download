@@ -1,11 +1,10 @@
 import dotenv from 'dotenv'
 import fs from 'fs'
 import http from 'http'
-import https from 'https';
 import path from 'path';
 import { Octokit, App } from 'octokit'
 import { createNodeMiddleware } from '@octokit/webhooks'
-import { generateRepoZipName } from './utils.js'
+import { downloadFile, generateRepoZipName, generateTimestampString } from './utils.js'
 
 // Load environment variables from .env file
 dotenv.config();
@@ -109,7 +108,20 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
                 }
 
                 // Download the zip file from the artifact
-                return downloadRepoZipFile(artifact_id, repoName, repoOwner, octokit);
+                const downloadResponse = await octokit.request('GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}', {
+                    owner: repoOwner,
+                    repo: repoName,
+                    artifact_id,
+                    archive_format: 'zip',
+                    headers: {
+                        accept: 'application/vnd.github+json',
+                    }
+                });
+
+                const downloadUrl = downloadResponse.url;
+                const destPath = path.resolve('/Users/stockton.manges/Downloads/', generateRepoZipName(repoName, repoOwner) + '.zip');
+
+                return await downloadFile(downloadUrl, destPath);
             } else {
                 console.log('Workflow run conclusion: ', payload.workflow_run.conclusion);
                 console.log('Workflow run was not successful. Downloading logs...');
@@ -124,13 +136,14 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
                     }
                 })
 
-                console.log('Log response: ', logResponse);
+                const logUrl = logResponse.url;
+                const destPath = path.resolve('/Users/stockton.manges/Downloads/', 'WORKFLOW-LOGS-' + generateRepoZipName(repoName, repoOwner) + '-' + generateTimestampString() + '.zip');
 
-                return;
+                return await downloadFile(logUrl, destPath);
             }
         }
     } else {
-        console.log('Workflow name: ', workflowName);
+        console.log(`Workflow with name ${workflowName} is not supported.`);
         return;
     }
 });
@@ -152,40 +165,3 @@ http.createServer(middleware).listen(port, () => {
     console.log(`Server is listening for events at: ${localWebhookUrl}`);
     console.log('Press Ctrl + C to quit.');
 });
-
-const downloadRepoZipFile = async (artifact_id: number, repoName: string, repoOwner: string, octokit: Octokit) => {
-    const downloadResponse = await octokit.request('GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}', {
-        owner: repoOwner,
-        repo: repoName,
-        artifact_id,
-        archive_format: 'zip',
-        headers: {
-            accept: 'application/vnd.github+json',
-        }
-    });
-
-    console.log('Download URL: ', downloadResponse.url);
-
-    // Use the URL directly for downloading
-    const downloadUrl = downloadResponse.url;
-    const destPath = path.resolve('/Users/stockton.manges/Downloads/', generateRepoZipName(repoName, repoOwner));
-    const file = fs.createWriteStream(destPath);
-
-    console.log(`Downloading artifact to ${destPath}`);
-
-    // Download using the URL
-    await new Promise<void>((resolve, reject) => {
-        https.get(downloadUrl, res => {
-            res.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                console.log(`Download complete: ${destPath}`);
-                resolve();
-            });
-        }).on('error', err => {
-            fs.unlink(destPath, () => { });
-            console.error(`❌ Error downloading artifact:`, err);
-            reject(err);
-        });
-    });
-}

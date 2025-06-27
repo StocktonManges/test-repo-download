@@ -35,16 +35,11 @@ jobs:
 
       - name: Zip repository
         run: |
-            zip -r "${{ inputs.zip_name }}.zip" . -x ${{ inputs.ignored_content }}
-
-      # - name: Zip repository
-      #   run: |
-      #       if [ -n "${{ inputs.ignored_content }}" ] && [ "${{ inputs.ignored_content }}" != "" ]; then
-      #         IFS=',' read -ra EXCLUDES <<< "${{ inputs.ignored_content }}"
-      #         zip -r "${{ inputs.zip_name }}.zip" . -x "${EXCLUDES[@]}"
-      #       else
-      #         zip -r "${{ inputs.zip_name }}.zip" .
-      #       fi
+            if [ -n "${{ inputs.ignored_content }}" ]; then
+              zip -r "${{ inputs.zip_name }}.zip" . -x ${{ inputs.ignored_content }}
+            else
+              zip -r "${{ inputs.zip_name }}.zip" .
+            fi
 
       - name: Upload zip artifact
         uses: actions/upload-artifact@v4

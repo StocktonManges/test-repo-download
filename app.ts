@@ -1,9 +1,10 @@
 import dotenv from 'dotenv'
 import fs from 'fs'
 import http from 'http'
+import https from 'https';
+import path from 'path';
 import { Octokit, App } from 'octokit'
 import { createNodeMiddleware } from '@octokit/webhooks'
-import { getAuthenticatedOctokitInstance } from './scripts/get-installation-id.js'
 import { generateRepoZipName } from './utils.js'
 
 // Load environment variables from .env file
@@ -70,11 +71,17 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
         console.log('No workflow name found');
         return;
     } else if (workflowName === 'Zip and Upload Repository') {
+        const repoName = payload.repository.name;
+        const repoOwner = payload.repository.owner.login;
+        const runId = payload.workflow_run.id;
+        const runAttempt = payload.workflow_run.run_attempt;
+
         if (payload.action === 'requested') {
             console.log('Workflow run requested');
             console.log('run id: ', payload.workflow_run.id);
             console.log('workflow name: ', payload.workflow_run.name);
-            console.log('repo name: ', payload.repository.name);
+            console.log('repo name: ', repoName);
+            console.log('repo owner: ', repoOwner);
             console.log('requester name: ', payload.sender.login)
             console.log('Processing...');
         }
@@ -82,31 +89,42 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
             console.log(payload.workflow_run.conclusion);
 
             if (payload.workflow_run.conclusion === 'success') {
-                // Download the zip file from the artifact
+                // Get all artifacts for the workflow run (should only have one)
                 const { data: { artifacts } } = await octokit.request('GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts', {
                     owner: payload.repository.owner.login,
-                    repo: payload.repository.name,
+                    repo: repoName,
                     run_id: payload.workflow_run.id,
                     headers: {
                         accept: 'application/vnd.github+json',
                     }
                 });
 
-                const repoZip = artifacts.find(a => a.name.includes(generateRepoZipName(payload.repository.name, payload.repository.owner.login)));
+                // Find the artifact with the correct naming convention (there is a timestamp added to the end of the name)
+                const artifact = artifacts.find(a => a.name.includes(generateRepoZipName(repoName, repoOwner)));
+                const artifact_id = artifact?.id;
 
-                if (!repoZip) {
-                    console.log('No repo zip found');
+                if (!artifact_id) {
+                    console.log('No artifact found with the name: ', generateRepoZipName(repoName, repoOwner));
                     return;
                 }
 
-                console.log('Download URL: ', repoZip.archive_download_url);
-                return;
-
+                // Download the zip file from the artifact
+                return downloadRepoZipFile(artifact_id, repoName, repoOwner, octokit);
             } else {
                 console.log('Workflow run conclusion: ', payload.workflow_run.conclusion);
                 console.log('Workflow run was not successful. Downloading logs...');
 
-                // TODO: Download the logs file
+                const logResponse = await octokit.request('GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/logs', {
+                    owner: repoOwner,
+                    repo: repoName,
+                    run_id: runId,
+                    attempt_number: runAttempt,
+                    headers: {
+                        accept: 'application/vnd.github+json',
+                    }
+                })
+
+                console.log('Log response: ', logResponse);
 
                 return;
             }
@@ -124,13 +142,50 @@ app.webhooks.onError((error) => {
 
 // Launch a web server to listen for GitHub webhooks
 const port = process.env.PORT || 3000;
-const path = '/api/webhook';
-const localWebhookUrl = `http://localhost:${port}${path}`;
+const localPath = '/api/webhook';
+const localWebhookUrl = `http://localhost:${port}${localPath}`;
 
 // See https://github.com/octokit/webhooks.js/#createnodemiddleware for all options
-const middleware = createNodeMiddleware(app.webhooks, { path });
+const middleware = createNodeMiddleware(app.webhooks, { path: localPath });
 
 http.createServer(middleware).listen(port, () => {
     console.log(`Server is listening for events at: ${localWebhookUrl}`);
     console.log('Press Ctrl + C to quit.');
 });
+
+const downloadRepoZipFile = async (artifact_id: number, repoName: string, repoOwner: string, octokit: Octokit) => {
+    const downloadResponse = await octokit.request('GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}', {
+        owner: repoOwner,
+        repo: repoName,
+        artifact_id,
+        archive_format: 'zip',
+        headers: {
+            accept: 'application/vnd.github+json',
+        }
+    });
+
+    console.log('Download URL: ', downloadResponse.url);
+
+    // Use the URL directly for downloading
+    const downloadUrl = downloadResponse.url;
+    const destPath = path.resolve('/Users/stockton.manges/Downloads/', generateRepoZipName(repoName, repoOwner));
+    const file = fs.createWriteStream(destPath);
+
+    console.log(`Downloading artifact to ${destPath}`);
+
+    // Download using the URL
+    await new Promise<void>((resolve, reject) => {
+        https.get(downloadUrl, res => {
+            res.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                console.log(`Download complete: ${destPath}`);
+                resolve();
+            });
+        }).on('error', err => {
+            fs.unlink(destPath, () => { });
+            console.error(`❌ Error downloading artifact:`, err);
+            reject(err);
+        });
+    });
+}

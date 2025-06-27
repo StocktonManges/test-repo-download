@@ -3,6 +3,7 @@ import fs from 'fs';
 import https from 'https';
 import path from 'path';
 import { getAuthenticatedOctokitInstance } from './get-installation-id.js';
+import { generateRepoZipName } from '../utils.js';
 
 // Load env variables
 const APP_ID = process.env.APP_ID;
@@ -67,7 +68,7 @@ async function downloadZipball() {
     const { token } = await (octokit.auth({ type: 'installation' }) as Promise<{ token: string }>);
 
     const zipballUrl = response.url;
-    const destPath = path.resolve('/Users/stockton.manges/Downloads/', `${REPO}.zip`);
+    const destPath = path.resolve('/Users/stockton.manges/Downloads/', `${generateRepoZipName(REPO, OWNER)}.zip`);
     const file = fs.createWriteStream(destPath);
 
     console.log(`Downloading zipball to ${destPath}`);

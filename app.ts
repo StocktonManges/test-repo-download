@@ -56,11 +56,27 @@ const app = new App({
     })
 });
 
-// Optional: Get & log the authenticated app's name
-const { data } = await app.octokit.request('/app');
+app.webhooks.on('installation_repositories', async ({ payload }) => {
+    const isAdding = payload.action === 'added';
+    console.log(`Installation repositories event received: ${isAdding ? 'addition' : 'removal'}`);
 
-// Read more about custom logging: https://github.com/octokit/core.js#logging
-app.octokit.log.debug(`Authenticated as '${data.name}'`);
+    if (isAdding) {
+        // All of this should be stored in a database.
+        console.log('Installation ID: ', payload.installation.id);
+        console.log('Account Owner: ', payload.sender.login);
+        console.log('Repositories added: ', payload.repositories_added.length);
+        payload.repositories_added.forEach(repo => {
+            console.log('- Repository Name: ', repo.name);
+            console.log('  Repository ID: ', repo.id);
+        });
+    } else {
+        console.log('Repositories removed: ', payload.repositories_removed.length);
+        payload.repositories_removed.forEach(repo => {
+            console.log('- Repository Name: ', repo.name);
+            console.log('  Repository ID: ', repo.id);
+        });
+    }
+});
 
 // Subscribe to the "workflow_run" webhook event
 app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
@@ -115,6 +131,7 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
                     archive_format: 'zip',
                     headers: {
                         accept: 'application/vnd.github+json',
+                        'X-GitHub-Api-Version': '2022-11-28',
                     }
                 });
 
@@ -133,6 +150,7 @@ app.webhooks.on('workflow_run', async ({ payload, octokit }) => {
                     attempt_number: runAttempt,
                     headers: {
                         accept: 'application/vnd.github+json',
+                        'X-GitHub-Api-Version': '2022-11-28',
                     }
                 })
 

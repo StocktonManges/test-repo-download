@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { getAuthenticatedOctokitInstance } from './get-installation-id.js';
+import { getAuthenticatedOctokitInstance } from './authenticate-octokit-instance.js';
 import { generateRepoZipName, generateTimestampString } from '../utils.js';
 
 // Load env variables
@@ -39,9 +39,9 @@ async function triggerWorkflow() {
         process.exit(1);
     }
 
-    console.log('Getting installation ID...');
+    console.log('Getting authenticated octokit instance...');
 
-    // Get the authenticated octokit instance for the app
+    // Get the authenticated octokit instance for the intstallation (GitHub account)
     const octokit = await getAuthenticatedOctokitInstance();
 
     console.log('Triggering workflow...');
@@ -69,7 +69,8 @@ async function triggerWorkflow() {
         ref: 'main',
         inputs,
         headers: {
-            accept: 'application/vnd.github+json'
+            accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
         }
     })
 }

@@ -1,9 +1,7 @@
-import { App } from 'octokit';
 import fs from 'fs';
-import https from 'https';
+import { getAuthenticatedOctokitInstance } from './authenticate-octokit-instance.js';
+import { downloadFile, generateRepoZipName } from '../utils.js';
 import path from 'path';
-import { getAuthenticatedOctokitInstance } from './get-installation-id.js';
-import { generateRepoZipName } from '../utils.js';
 
 // Load env variables
 const APP_ID = process.env.APP_ID;
@@ -29,9 +27,6 @@ if (!fs.existsSync(PRIVATE_KEY_PATH)) {
     process.exit(1);
 }
 
-const PRIVATE_KEY = fs.readFileSync(PRIVATE_KEY_PATH, 'utf8');
-const app = new App({ appId: APP_ID, privateKey: PRIVATE_KEY });
-
 async function downloadZipball() {
     if (!OWNER) {
         console.log('❌ OWNER environment variable is not set');
@@ -47,7 +42,7 @@ async function downloadZipball() {
 
     console.log('Getting authenticated octokit instance...');
 
-    // Get the authenticated octokit instance for the app
+    // Get the authenticated octokit instance for the installation (GitHub account)
     const octokit = await getAuthenticatedOctokitInstance();
 
     console.log('Getting zipball URL...');
@@ -58,36 +53,15 @@ async function downloadZipball() {
         repo: REPO,
         ref: 'main',
         headers: {
-            accept: 'application/vnd.github+json'
+            accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
         }
     });
 
-    console.log('Zipball URL:', response.url);
-
-    // Get the token from octokit auth
-    const { token } = await (octokit.auth({ type: 'installation' }) as Promise<{ token: string }>);
-
     const zipballUrl = response.url;
     const destPath = path.resolve('/Users/stockton.manges/Downloads/', `${generateRepoZipName(REPO, OWNER)}.zip`);
-    const file = fs.createWriteStream(destPath);
 
-    console.log(`Downloading zipball to ${destPath}`);
-
-    // Wrap the download in a Promise
-    await new Promise<void>((resolve, reject) => {
-        https.get(zipballUrl, { headers: { authorization: `token ${token}` } }, res => {
-            res.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                console.log(`Download complete: ${destPath}`);
-                resolve();
-            });
-        }).on('error', err => {
-            fs.unlink(destPath, () => { });
-            console.error(`❌ Error downloading zipball:`, err);
-            reject(err);
-        });
-    });
+    return await downloadFile(zipballUrl, destPath);
 }
 
 downloadZipball()

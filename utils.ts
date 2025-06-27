@@ -20,7 +20,7 @@ export const downloadFile = async (downloadUrl: string, destPath: string) => {
             res.pipe(file);
             file.on('finish', () => {
                 file.close();
-                console.log(`Download complete: ${destPath}`);
+                console.log('Download complete!');
                 resolve();
             });
         }).on('error', err => {

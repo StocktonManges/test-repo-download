@@ -1,13 +1,11 @@
 import fs from 'fs';
 import { getAuthenticatedOctokitInstance } from './authenticate-octokit-instance.js';
-import { downloadFile, generateRepoZipName } from '../utils.js';
+import { downloadFile, generateRepoZipName, OWNER, REPO } from '../utils.js';
 import path from 'path';
 
 // Load env variables
 const APP_ID = process.env.APP_ID;
 const PRIVATE_KEY_PATH = process.env.PRIVATE_KEY_PATH;
-const OWNER = process.env.OWNER;
-const REPO = process.env.REPO;
 
 if (!APP_ID) {
     console.error('❌ APP_ID environment variable is not set');
@@ -28,18 +26,6 @@ if (!fs.existsSync(PRIVATE_KEY_PATH)) {
 }
 
 async function downloadZipball() {
-    if (!OWNER) {
-        console.log('❌ OWNER environment variable is not set');
-        console.log('Please set it in your .env file or export it');
-        process.exit(1);
-    }
-
-    if (!REPO) {
-        console.log('❌ REPO environment variable is not set');
-        console.log('Please set it in your .env file or export it');
-        process.exit(1);
-    }
-
     console.log('Getting authenticated octokit instance...');
 
     // Get the authenticated octokit instance for the installation (GitHub account)

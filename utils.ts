@@ -30,3 +30,7 @@ export const downloadFile = async (downloadUrl: string, destPath: string) => {
         });
     });
 }
+
+// FOR DEVELOPMENT PURPOSES ONLY.
+export const OWNER = 'StocktonManges';
+export const REPO = 'test-repo-download';
